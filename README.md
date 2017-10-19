@@ -1,3 +1,5 @@
+This fork is for adding Properties to dotnetify that are not on class level but provided via TypeDescriptor from System.ComponentModel
+
 # &nbsp;![alt tag](http://dotnetify.net/content/images/greendot.png) dotNetify 
 ![alt build](https://ci.appveyor.com/api/projects/status/github/dsuryd/dotnetify?svg=true)
 [![npm version](https://badge.fury.io/js/dotnetify.svg)](https://badge.fury.io/js/dotnetify)
