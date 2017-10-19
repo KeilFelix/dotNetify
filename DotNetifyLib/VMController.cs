@@ -24,6 +24,7 @@ using System.Reflection;
 using System.Windows.Input;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace DotNetify
 {
@@ -533,9 +534,23 @@ namespace DotNetify
       {
          try
          {
-            List<string> ignoredPropertyNames = data is BaseVM ? (data as BaseVM).IgnoredProperties : null;
-            return JsonConvert.SerializeObject(data, new JsonSerializerSettings { ContractResolver = new VMContractResolver(ignoredPropertyNames) });
-         }
+                string json;
+                if (data is IDictionary<string, object>)
+                {
+                    JObject jObject = new JObject();
+                    foreach (var item in data as IDictionary<string, object>)
+                    {
+                        jObject[item.Key] = GetJTokenToAdd(item.Value);
+                    }
+                    json = jObject.ToString(Formatting.None);
+                }
+                else
+                {
+                    json = SerializeHelper(new JObject(), data).ToString(Formatting.None);
+                }
+
+                return json;
+            }
          catch (Exception ex)
          {
             Trace.Fail(ex.ToString());
@@ -543,12 +558,56 @@ namespace DotNetify
          }
       }
 
-      /// <summary>
-      /// Extracts the namespace string from a view model initialization argument.
-      /// </summary>
-      /// <param name="vmArg">View model's initialization argument.</param>
-      /// <returns>Namespace string or null.</returns>
-      private string ExtractNamespace(ref object vmArg)
+      protected virtual JObject SerializeHelper(JObject jObject, object data)
+      {
+         var properties = TypeDescriptor.GetProperties(data).OfType<PropertyDescriptor>().Where(pd => !pd.Attributes.Contains(new BaseVM.IgnoreAttribute()));
+
+         foreach (PropertyDescriptor item in properties)
+         {
+            jObject[item.Name] = GetJTokenToAdd(item.GetValue(data));
+         }
+
+         return jObject;
+      }
+
+      protected virtual JToken GetJTokenToAdd(object dataObj)
+      {
+         JToken jToken;
+         if (dataObj is BaseVM)
+         {
+            jToken = new JObject();
+            SerializeHelper(jToken as JObject, dataObj);
+         }
+         else if (dataObj is ICommand)
+         {
+            jToken = JValue.CreateNull();
+         }
+         else if (dataObj is IEnumerable && !(dataObj is string))
+         {
+            var jArray = new JArray();
+            foreach (var dataObjMember in dataObj as IEnumerable)
+            {
+               JToken toAdd = GetJTokenToAdd(dataObjMember);
+
+               jArray.Add(toAdd);
+            }
+            jToken = jArray;
+         }
+         else
+         {
+            jToken = JToken.FromObject(dataObj);
+         }
+
+         return jToken;
+      }
+
+
+        /// <summary>
+        /// Extracts the namespace string from a view model initialization argument.
+        /// </summary>
+        /// <param name="vmArg">View model's initialization argument.</param>
+        /// <returns>Namespace string or null.</returns>
+        private string ExtractNamespace(ref object vmArg)
       {
          const string NAMESPACE = "namespace";
          string vmNamespace = null;

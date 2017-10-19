@@ -17,6 +17,7 @@ limitations under the License.
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -160,7 +161,7 @@ namespace DotNetify
             return;
 
          // Mark property as changed, to allow the server view model to forward changes back to the client view model.
-         _changedProperties[propertyName] = GetType().GetProperty(propertyName).GetValue(this);
-      }
+         _changedProperties[propertyName] = TypeDescriptor.GetProperties(this).Find(propertyName, false).GetValue(this);
+        }
    }
 }
